@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { FunnelEntry, Standort, User } from '../../types';
 import { today, weekRange, monthRange } from '../../lib/dateUtils';
 import { filterByRange, planbesprechungenSum } from '../../lib/kpi';
@@ -12,17 +12,18 @@ interface Props {
     mitarbeiter: string;
     werttyp: 'planbesprechung';
   }) => Promise<void>;
+  removeEntry: (id: string) => Promise<void>;
 }
 
-export default function Planbesprechung({ entries, users, addEntry }: Props) {
+export default function Planbesprechung({ entries, users, addEntry, removeEntry }: Props) {
   const [standort, setStandort] = useState<Standort>('Stadttheater');
   const [arzt, setArzt] = useState(users[0]?.name || '');
   const [pressing, setPressing] = useState(false);
   const [lastEntry, setLastEntry] = useState<string | null>(null);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress = useRef(false);
 
-  if (!arzt && users.length > 0) {
-    setArzt(users[0].name);
-  }
+  if (!arzt && users.length > 0) setArzt(users[0].name);
 
   const todayStr = today();
   const [weekFrom, weekTo] = weekRange();
@@ -41,7 +42,28 @@ export default function Planbesprechung({ entries, users, addEntry }: Props) {
     [entries, monthFrom, monthTo]
   );
 
+  const handlePointerDown = () => {
+    setPressing(true);
+    didLongPress.current = false;
+    holdTimer.current = setTimeout(async () => {
+      didLongPress.current = true;
+      const todayEntries = entries
+        .filter(e => e.datum === todayStr && e.werttyp === 'planbesprechung')
+        .sort((a, b) => b.uhrzeit.localeCompare(a.uhrzeit));
+      if (todayEntries.length > 0) {
+        await removeEntry(todayEntries[0].id);
+        setLastEntry('−1 rückgängig');
+      }
+    }, 500);
+  };
+
+  const handlePointerUp = () => {
+    setPressing(false);
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+  };
+
   const handleClick = async () => {
+    if (didLongPress.current) return;
     if (!arzt) return;
     await addEntry({
       standort,
@@ -49,7 +71,7 @@ export default function Planbesprechung({ entries, users, addEntry }: Props) {
       mitarbeiter: arzt,
       werttyp: 'planbesprechung',
     });
-    setLastEntry(new Date().toLocaleTimeString('de-DE', { hour12: false }).slice(0, 5));
+    setLastEntry(new Date().toLocaleTimeString('de-DE', { hour12: false }).slice(0, 5) + ' Uhr');
   };
 
   return (
@@ -74,9 +96,7 @@ export default function Planbesprechung({ entries, users, addEntry }: Props) {
           Arzt
           <select value={arzt} onChange={(e) => setArzt(e.target.value)}>
             {users.map((u) => (
-              <option key={u.id} value={u.name}>
-                {u.name}
-              </option>
+              <option key={u.id} value={u.name}>{u.name}</option>
             ))}
           </select>
         </label>
@@ -92,16 +112,20 @@ export default function Planbesprechung({ entries, users, addEntry }: Props) {
       <button
         className={`pb-big-button ${pressing ? 'pressing' : ''}`}
         onClick={handleClick}
-        onPointerDown={() => setPressing(true)}
-        onPointerUp={() => setPressing(false)}
-        onPointerLeave={() => setPressing(false)}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
       >
         Planbesprechung durchgeführt
+        <span style={{ display: 'block', fontSize: '13px', opacity: 0.6, marginTop: '8px', fontWeight: 400 }}>
+          Gedrückt halten = −1
+        </span>
       </button>
 
       {lastEntry && (
-        <p className="pb-last-entry">Letzter Eintrag: {lastEntry} Uhr</p>
+        <p className="pb-last-entry">Letzter Eintrag: {lastEntry}</p>
       )}
     </div>
   );
 }
+

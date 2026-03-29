@@ -48,7 +48,8 @@ export default function App() {
           />
         )}
         {view === 'planbesprechung' && (
-          <Planbesprechung entries={entries} users={users} addEntry={addEntry} />
+          <Planbesprechung entries={entries} users={users} addEntry={addEntry} removeEntry={removeEntry} />
+
         )}
         {view === 'dashboard' && <Dashboard entries={entries} />}
       </main>
