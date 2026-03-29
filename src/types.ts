@@ -7,6 +7,7 @@ export type Werttyp =
   | 'telefonische_anfrage'
   | 'sonstiger_kontakt'
   | 'neuaufnahme'
+  | 'wiedervorstellung'
   | 'planbesprechung'
   | 'unterschriebene_unterlagen';
 
@@ -39,6 +40,7 @@ export const WERTTYP_LABELS: Record<Werttyp, string> = {
   telefonische_anfrage: 'Telefonische Anfrage',
   sonstiger_kontakt: 'Sonstiger Kontakt',
   neuaufnahme: 'Neuaufnahme',
+  wiedervorstellung: 'Wiedervorstellung',
   planbesprechung: 'Planbesprechung',
   unterschriebene_unterlagen: 'Unterlagen unterzeichnet',
 };
@@ -48,6 +50,7 @@ export const WERTTYP_COLORS: Record<Werttyp, string> = {
   telefonische_anfrage: '#12507a',
   sonstiger_kontakt: '#0d9488',
   neuaufnahme: '#b45309',
+  wiedervorstellung: '#c2410c',
   planbesprechung: '#6d28d9',
   unterschriebene_unterlagen: '#15803d',
 };
