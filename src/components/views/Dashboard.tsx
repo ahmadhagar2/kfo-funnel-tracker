@@ -2,29 +2,51 @@ import { useState, useMemo } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
 import { FunnelEntry, Standort } from '../../types';
-import { today, weekRange, monthRange, prevDay, prevWeekRange, prevMonthRange, weekdayIndex, WEEKDAY_LABELS } from '../../lib/dateUtils';
-import { filterByRange, filterByStandort, kontakteSum, neuaufnahmenSum, wiedervorstellungenSum, planbesprechungenSum, unterlagenSum, conversionRate, delta } from '../../lib/kpi';
+import { today, weekRange, monthRange, prevDay, prevWeekRange, prevMonthRange, weekdayIndex, WEEKDAY_LABELS, getMonthRange } from '../../lib/dateUtils';
+import { filterByRange, filterByStandort, kontakteSum, neuaufnahmenSum, wiedervorstellungenSum, planbesprechungenSum, unterlagenSum, kvAbgegebenSum, conversionRate, delta } from '../../lib/kpi';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend);
 type Period = 'heute' | 'woche' | 'monat';
 interface Props { entries: FunnelEntry[]; }
 
+const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+
 export default function Dashboard({ entries }: Props) {
   const [period, setPeriod] = useState<Period>('heute');
   const [standort, setStandort] = useState<'Alle' | Standort>('Alle');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+
+  const goToPrevMonth = () => {
+    if (selectedMonth === 0) { setSelectedMonth(11); setSelectedYear(selectedYear - 1); }
+    else setSelectedMonth(selectedMonth - 1);
+  };
+  const goToNextMonth = () => {
+    if (selectedMonth === 11) { setSelectedMonth(0); setSelectedYear(selectedYear + 1); }
+    else setSelectedMonth(selectedMonth + 1);
+  };
+  const goToCurrentMonth = () => {
+    setSelectedYear(new Date().getFullYear());
+    setSelectedMonth(new Date().getMonth());
+  };
+
   const ranges = useMemo(() => {
     const todayStr = today();
     const [wF, wT] = weekRange();
-    const [mF, mT] = monthRange();
+    const [smF, smT] = getMonthRange(selectedYear, selectedMonth);
     const prevDayStr = prevDay();
     const [pwF, pwT] = prevWeekRange();
-    const [pmF, pmT] = prevMonthRange();
+    // Previous month relative to selected month
+    const prevSelMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+    const prevSelYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+    const [pmF, pmT] = getMonthRange(prevSelYear, prevSelMonth);
     return {
       heute: { from: todayStr, to: todayStr, prevFrom: prevDayStr, prevTo: prevDayStr },
       woche: { from: wF, to: wT, prevFrom: pwF, prevTo: pwT },
-      monat: { from: mF, to: mT, prevFrom: pmF, prevTo: pmT },
+      monat: { from: smF, to: smT, prevFrom: pmF, prevTo: pmT },
     };
-  }, []);
+  }, [selectedYear, selectedMonth]);
+
   const r = ranges[period];
   const filtered = useMemo(() => filterByStandort(filterByRange(entries, r.from, r.to), standort), [entries, r, standort]);
   const prevFiltered = useMemo(() => filterByStandort(filterByRange(entries, r.prevFrom, r.prevTo), standort), [entries, r, standort]);
@@ -34,6 +56,7 @@ export default function Dashboard({ entries }: Props) {
     wiedervorstellungen: wiedervorstellungenSum(filtered),
     planbesprechungen: planbesprechungenSum(filtered),
     unterlagen: unterlagenSum(filtered),
+    kvAbgegeben: kvAbgegebenSum(filtered),
   };
   const prevKpi = {
     kontakte: kontakteSum(prevFiltered),
@@ -41,6 +64,7 @@ export default function Dashboard({ entries }: Props) {
     wiedervorstellungen: wiedervorstellungenSum(prevFiltered),
     planbesprechungen: planbesprechungenSum(prevFiltered),
     unterlagen: unterlagenSum(prevFiltered),
+    kvAbgegeben: kvAbgegebenSum(prevFiltered),
   };
   const maxFunnel = Math.max(kpi.kontakte, 1);
   const funnelStages = [
@@ -61,21 +85,24 @@ export default function Dashboard({ entries }: Props) {
     });
     return { labels: WEEKDAY_LABELS, datasets: [{ label: 'Neue Kontakte', data: counts, backgroundColor: '#1a6fd4', borderRadius: 4 }] };
   }, [entries, standort]);
+
   const monthlyData = useMemo(() => {
-    const [mF, mT] = monthRange();
+    const [mF, mT] = getMonthRange(selectedYear, selectedMonth);
     const monthEntries = filterByStandort(filterByRange(entries, mF, mT), standort);
     const lastDay = parseInt(mT.slice(8, 10));
     const labels: string[] = [];
     const kontakte: number[] = [];
     const pb: number[] = [];
     const unt: number[] = [];
+    const kv: number[] = [];
     for (let d = 1; d <= lastDay; d++) {
-      const ds = mF.slice(0, 8) + String(d).padStart(2, '0');
+      const ds = selectedYear + '-' + String(selectedMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
       labels.push(String(d));
       const dayEntries = monthEntries.filter((e) => e.datum === ds);
       kontakte.push(kontakteSum(dayEntries));
       pb.push(planbesprechungenSum(dayEntries));
       unt.push(unterlagenSum(dayEntries));
+      kv.push(kvAbgegebenSum(dayEntries));
     }
     return {
       labels,
@@ -83,9 +110,11 @@ export default function Dashboard({ entries }: Props) {
         { label: 'Kontakte', data: kontakte, borderColor: '#1a6fd4', backgroundColor: '#1a6fd4', tension: 0.3 },
         { label: 'Planbesprechungen', data: pb, borderColor: '#6d28d9', backgroundColor: '#6d28d9', tension: 0.3 },
         { label: 'Unterlagen', data: unt, borderColor: '#15803d', backgroundColor: '#15803d', tension: 0.3 },
+        { label: 'KV abgegeben', data: kv, borderColor: '#0891b2', backgroundColor: '#0891b2', tension: 0.3 },
       ],
     };
-  }, [entries, standort]);
+  }, [entries, standort, selectedYear, selectedMonth]);
+
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -95,6 +124,12 @@ export default function Dashboard({ entries }: Props) {
   return (
     <div className="dashboard">
       <div className="dash-controls">
+        <div className="month-nav" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', marginBottom: '10px' }}>
+          <button className="period-btn" onClick={goToPrevMonth}>&larr;</button>
+          <span style={{ fontWeight: 600, minWidth: '140px', textAlign: 'center' }}>{MONTH_NAMES[selectedMonth]} {selectedYear}</span>
+          <button className="period-btn" onClick={goToNextMonth}>&rarr;</button>
+          <button className="period-btn" onClick={goToCurrentMonth} style={{ marginLeft: '8px', fontSize: '12px' }}>Aktueller Monat</button>
+        </div>
         <div className="period-selector">
           {(['heute', 'woche', 'monat'] as Period[]).map((p) => (
             <button key={p} className={period === p ? 'period-btn active' : 'period-btn'} onClick={() => setPeriod(p)}>
@@ -114,6 +149,7 @@ export default function Dashboard({ entries }: Props) {
         <KpiCard label="Wiedervorstellungen" value={kpi.wiedervorstellungen} color="#c2410c" delta={delta(kpi.wiedervorstellungen, prevKpi.wiedervorstellungen)} />
         <KpiCard label="Planbesprechungen" value={kpi.planbesprechungen} color="#6d28d9" delta={delta(kpi.planbesprechungen, prevKpi.planbesprechungen)} />
         <KpiCard label="Unterlagen" value={kpi.unterlagen} color="#15803d" delta={delta(kpi.unterlagen, prevKpi.unterlagen)} />
+        <KpiCard label="KV abgegeben" value={kpi.kvAbgegeben} color="#0891b2" delta={delta(kpi.kvAbgegeben, prevKpi.kvAbgegeben)} />
       </div>
       <div className="funnel-section">
         <h3>Funnel</h3>

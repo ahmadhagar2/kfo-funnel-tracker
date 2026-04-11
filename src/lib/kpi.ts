@@ -33,6 +33,10 @@ export function unterlagenSum(entries: FunnelEntry[]): number {
   return sumByType(entries, 'unterschriebene_unterlagen');
 }
 
+export function kvAbgegebenSum(entries: FunnelEntry[]): number {
+  return sumByType(entries, 'kv_abgegeben');
+}
+
 export function conversionRate(numerator: number, denominator: number): string {
   if (denominator === 0) return '—';
   return (numerator / denominator * 100).toFixed(1) + '%';

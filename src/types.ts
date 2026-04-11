@@ -9,7 +9,8 @@ export type Werttyp =
   | 'neuaufnahme'
   | 'wiedervorstellung'
   | 'planbesprechung'
-  | 'unterschriebene_unterlagen';
+  | 'unterschriebene_unterlagen'
+  | 'kv_abgegeben';
 
 export interface FunnelEntry {
   id: string;
@@ -43,6 +44,7 @@ export const WERTTYP_LABELS: Record<Werttyp, string> = {
   wiedervorstellung: 'Wiedervorstellung',
   planbesprechung: 'Planbesprechung',
   unterschriebene_unterlagen: 'Unterlagen unterzeichnet',
+  kv_abgegeben: 'KV abgegeben',
 };
 
 export const WERTTYP_COLORS: Record<Werttyp, string> = {
@@ -53,4 +55,5 @@ export const WERTTYP_COLORS: Record<Werttyp, string> = {
   wiedervorstellung: '#c2410c',
   planbesprechung: '#6d28d9',
   unterschriebene_unterlagen: '#15803d',
+  kv_abgegeben: '#0891b2',
 };

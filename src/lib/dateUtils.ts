@@ -65,3 +65,11 @@ export function weekdayIndex(dateStr: string): number {
 }
 
 export const WEEKDAY_LABELS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+
+/** Returns [first, last] of a specific month as YYYY-MM-DD */
+export function getMonthRange(year: number, month: number): [string, string] {
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+  const f = (d: Date) => d.toISOString().slice(0, 10);
+  return [f(first), f(last)];
+}

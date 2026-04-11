@@ -26,6 +26,9 @@ const FUNNEL_ROW1: { werttyp: Werttyp; hint: string }[] = [
 const FUNNEL_ROW2: { werttyp: Werttyp; hint: string }[] = [
   { werttyp: 'unterschriebene_unterlagen', hint: 'Vertrag / Unterlagen' },
 ];
+const FUNNEL_ROW3: { werttyp: Werttyp; hint: string }[] = [
+  { werttyp: 'kv_abgegeben', hint: 'Retainer / Kostenvoranschlag' },
+];
 
 export default function Empfang({ entries, users, addEntry, removeEntry, decrementOrRemove, onOpenUserModal }: Props) {
   const [standort, setStandort] = useState<Standort>('Stadttheater');
@@ -97,7 +100,8 @@ export default function Empfang({ entries, users, addEntry, removeEntry, decreme
     KONTAKT_TYPEN.includes(e.werttyp) ||
     e.werttyp === 'neuaufnahme' ||
     e.werttyp === 'wiedervorstellung' ||
-    e.werttyp === 'unterschriebene_unterlagen'
+    e.werttyp === 'unterschriebene_unterlagen' ||
+    e.werttyp === 'kv_abgegeben'
   );
 
   return (
@@ -138,6 +142,10 @@ export default function Empfang({ entries, users, addEntry, removeEntry, decreme
           <span className="summary-value">{todayCount('unterschriebene_unterlagen')}</span>
           <span className="summary-label">Unterlagen</span>
         </div>
+        <div className="summary-card" style={{ borderColor: '#0891b2' }}>
+          <span className="summary-value">{todayCount('kv_abgegeben')}</span>
+          <span className="summary-label">KV abgegeben</span>
+        </div>
       </div>
       <div className="tile-section">
         <h3>Neue Kontakte</h3>
@@ -152,6 +160,9 @@ export default function Empfang({ entries, users, addEntry, removeEntry, decreme
         </div>
         <div className="tiles-grid" style={{ marginTop: '10px' }}>
           {FUNNEL_ROW2.map(({ werttyp, hint }) => renderTile(werttyp, hint))}
+        </div>
+        <div className="tiles-grid" style={{ marginTop: '10px' }}>
+          {FUNNEL_ROW3.map(({ werttyp, hint }) => renderTile(werttyp, hint))}
         </div>
       </div>
       <div className="entry-log">
