@@ -1,13 +1,17 @@
 import { useState, useRef, useCallback } from 'react';
 import { FunnelEntry, Standort, Werttyp, WERTTYP_LABELS, WERTTYP_COLORS, User, KONTAKT_TYPEN } from '../../types';
 import { today } from '../../lib/dateUtils';
+import { SavedInfo } from '../../App';
 
 interface Props {
   entries: FunnelEntry[];
   users: User[];
+  standort: Standort;
+  benutzer: string;
   addEntry: (p: { standort: Standort; bereich: 'Empfang'; mitarbeiter: string; werttyp: Werttyp }) => Promise<void>;
   removeEntry: (id: string) => Promise<void>;
   decrementOrRemove: (p: { standort: Standort; bereich: 'Empfang'; mitarbeiter: string; werttyp: Werttyp }) => Promise<void>;
+  onSaved: (info: SavedInfo) => void;
   onOpenUserModal: () => void;
   addUser: (name: string) => Promise<void>;
   renameUser: (id: string, name: string) => Promise<void>;
@@ -30,14 +34,11 @@ const FUNNEL_ROW3: { werttyp: Werttyp; hint: string }[] = [
   { werttyp: 'kv_abgegeben', hint: 'Retainer / Kostenvoranschlag' },
 ];
 
-export default function Empfang({ entries, users, addEntry, removeEntry, decrementOrRemove, onOpenUserModal }: Props) {
-  const [standort, setStandort] = useState<Standort>('Stadttheater');
-  const [mitarbeiter, setMitarbeiter] = useState(users[0]?.name || '');
+export default function Empfang({ entries, standort, benutzer, addEntry, removeEntry, decrementOrRemove, onSaved, onOpenUserModal }: Props) {
+  const mitarbeiter = benutzer;
   const [flashTile, setFlashTile] = useState<string | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPress = useRef(false);
-
-  if (!mitarbeiter && users.length > 0) setMitarbeiter(users[0].name);
 
   const todayStr = today();
   const todayEntries = entries.filter((e) => e.datum === todayStr);
@@ -50,7 +51,8 @@ export default function Empfang({ entries, users, addEntry, removeEntry, decreme
     if (!mitarbeiter) return;
     flash(werttyp);
     addEntry({ standort, bereich: 'Empfang', mitarbeiter, werttyp });
-  }, [standort, mitarbeiter, addEntry]);
+    onSaved({ ereignis: WERTTYP_LABELS[werttyp], standort, bereich: 'Empfang', werttyp });
+  }, [standort, mitarbeiter, addEntry, onSaved]);
 
   const handleLongPress = useCallback((werttyp: Werttyp) => {
     if (!mitarbeiter) return;
@@ -107,17 +109,6 @@ export default function Empfang({ entries, users, addEntry, removeEntry, decreme
   return (
     <div className="empfang">
       <div className="meta-bar">
-        <label>Standort
-          <select value={standort} onChange={(e) => setStandort(e.target.value as Standort)}>
-            <option value="Stadttheater">Stadttheater</option>
-            <option value="Wiehre">Wiehre</option>
-          </select>
-        </label>
-        <label>Mitarbeiter
-          <select value={mitarbeiter} onChange={(e) => setMitarbeiter(e.target.value)}>
-            {users.map((u) => <option key={u.id} value={u.name}>{u.name}</option>)}
-          </select>
-        </label>
         <button className="icon-button" onClick={onOpenUserModal}>Benutzer</button>
         <button className="icon-button" onClick={exportCsv}>CSV</button>
       </div>

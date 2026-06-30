@@ -47,6 +47,11 @@ export const WERTTYP_LABELS: Record<Werttyp, string> = {
   kv_abgegeben: 'KV abgegeben',
 };
 
+export const STANDORT_FARBEN: Record<Standort, string> = {
+  Stadttheater: '#1a6fd4',
+  Wiehre: '#6d28d9',
+};
+
 export const WERTTYP_COLORS: Record<Werttyp, string> = {
   online_termin: '#1a6fd4',
   telefonische_anfrage: '#12507a',

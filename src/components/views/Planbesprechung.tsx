@@ -2,10 +2,13 @@ import { useState, useMemo, useRef } from 'react';
 import { FunnelEntry, Standort, User } from '../../types';
 import { today, weekRange, monthRange } from '../../lib/dateUtils';
 import { filterByRange, planbesprechungenSum } from '../../lib/kpi';
+import { SavedInfo } from '../../App';
 
 interface Props {
   entries: FunnelEntry[];
   users: User[];
+  standort: Standort;
+  benutzer: string;
   addEntry: (p: {
     standort: Standort;
     bereich: 'Planbesprechungszimmer';
@@ -13,17 +16,15 @@ interface Props {
     werttyp: 'planbesprechung';
   }) => Promise<void>;
   removeEntry: (id: string) => Promise<void>;
+  onSaved: (info: SavedInfo) => void;
 }
 
-export default function Planbesprechung({ entries, users, addEntry, removeEntry }: Props) {
-  const [standort, setStandort] = useState<Standort>('Stadttheater');
-  const [arzt, setArzt] = useState(users[0]?.name || '');
+export default function Planbesprechung({ entries, standort, benutzer, addEntry, removeEntry, onSaved }: Props) {
+  const arzt = benutzer;
   const [pressing, setPressing] = useState(false);
   const [lastEntry, setLastEntry] = useState<string | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
-
-  if (!arzt && users.length > 0) setArzt(users[0].name);
 
   const todayStr = today();
   const [weekFrom, weekTo] = weekRange();
@@ -72,6 +73,7 @@ export default function Planbesprechung({ entries, users, addEntry, removeEntry 
       werttyp: 'planbesprechung',
     });
     setLastEntry(new Date().toLocaleTimeString('de-DE', { hour12: false }).slice(0, 5) + ' Uhr');
+    onSaved({ ereignis: 'Planbesprechung', standort, bereich: 'Planbesprechungszimmer', werttyp: 'planbesprechung' });
   };
 
   return (
@@ -91,24 +93,6 @@ export default function Planbesprechung({ entries, users, addEntry, removeEntry 
         </div>
       </div>
 
-      <div className="pb-controls">
-        <label>
-          Arzt
-          <select value={arzt} onChange={(e) => setArzt(e.target.value)}>
-            {users.map((u) => (
-              <option key={u.id} value={u.name}>{u.name}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Standort
-          <select value={standort} onChange={(e) => setStandort(e.target.value as Standort)}>
-            <option value="Stadttheater">Stadttheater</option>
-            <option value="Wiehre">Wiehre</option>
-          </select>
-        </label>
-      </div>
-
       <button
         className={`pb-big-button ${pressing ? 'pressing' : ''}`}
         onClick={handleClick}
@@ -121,6 +105,7 @@ export default function Planbesprechung({ entries, users, addEntry, removeEntry 
           Gedrückt halten = −1
         </span>
       </button>
+      <p className="pb-context">wird gespeichert für: {standort} · {arzt}</p>
 
       {lastEntry && (
         <p className="pb-last-entry">Letzter Eintrag: {lastEntry}</p>
