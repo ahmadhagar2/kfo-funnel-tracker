@@ -54,6 +54,8 @@ export function useEntries() {
       bereich: Bereich;
       mitarbeiter: string;
       werttyp: Werttyp;
+      standort_quelle?: string;
+      benutzer_quelle?: string;
     }) => {
       const { error } = await supabase.from('funnel_entries').insert({
         datum: today(),
@@ -63,6 +65,8 @@ export function useEntries() {
         mitarbeiter: params.mitarbeiter,
         werttyp: params.werttyp,
         anzahl: 1,
+        standort_quelle: params.standort_quelle ?? 'unbekannt',
+        benutzer_quelle: params.benutzer_quelle ?? 'unbekannt',
       });
       if (error) console.error('Error adding entry:', error);
     },

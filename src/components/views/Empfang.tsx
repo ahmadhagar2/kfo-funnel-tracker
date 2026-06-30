@@ -9,7 +9,9 @@ interface Props {
   users: User[];
   standort: Standort;
   benutzer: string;
-  addEntry: (p: { standort: Standort; bereich: 'Empfang'; mitarbeiter: string; werttyp: Werttyp }) => Promise<void>;
+  standortQuelle: string;
+  benutzerQuelle: string;
+  addEntry: (p: { standort: Standort; bereich: 'Empfang'; mitarbeiter: string; werttyp: Werttyp; standort_quelle?: string; benutzer_quelle?: string }) => Promise<void>;
   removeEntry: (id: string) => Promise<void>;
   decrementOrRemove: (p: { standort: Standort; bereich: 'Empfang'; mitarbeiter: string; werttyp: Werttyp }) => Promise<void>;
   onSaved: (info: SavedInfo) => void;
@@ -35,7 +37,7 @@ const FUNNEL_ROW3: { werttyp: Werttyp; hint: string }[] = [
   { werttyp: 'kv_abgegeben', hint: 'Retainer / Kostenvoranschlag' },
 ];
 
-export default function Empfang({ entries, standort, benutzer, addEntry, removeEntry, decrementOrRemove, onSaved, onOpenUserModal }: Props) {
+export default function Empfang({ entries, standort, benutzer, standortQuelle, benutzerQuelle, addEntry, removeEntry, decrementOrRemove, onSaved, onOpenUserModal }: Props) {
   const mitarbeiter = benutzer;
   const [flashTile, setFlashTile] = useState<string | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -51,9 +53,9 @@ export default function Empfang({ entries, standort, benutzer, addEntry, removeE
   const handleTap = useCallback((werttyp: Werttyp) => {
     if (!mitarbeiter) return;
     flash(werttyp);
-    addEntry({ standort, bereich: 'Empfang', mitarbeiter, werttyp });
+    addEntry({ standort, bereich: 'Empfang', mitarbeiter, werttyp, standort_quelle: standortQuelle, benutzer_quelle: benutzerQuelle });
     onSaved({ ereignis: WERTTYP_LABELS[werttyp], standort, bereich: 'Empfang', werttyp });
-  }, [standort, mitarbeiter, addEntry, onSaved]);
+  }, [standort, mitarbeiter, standortQuelle, benutzerQuelle, addEntry, onSaved]);
 
   const handleLongPress = useCallback((werttyp: Werttyp) => {
     if (!mitarbeiter) return;

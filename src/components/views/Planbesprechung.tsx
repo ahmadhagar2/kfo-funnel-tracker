@@ -9,17 +9,21 @@ interface Props {
   users: User[];
   standort: Standort;
   benutzer: string;
+  standortQuelle: string;
+  benutzerQuelle: string;
   addEntry: (p: {
     standort: Standort;
     bereich: 'Planbesprechungszimmer';
     mitarbeiter: string;
     werttyp: 'planbesprechung';
+    standort_quelle?: string;
+    benutzer_quelle?: string;
   }) => Promise<void>;
   removeEntry: (id: string) => Promise<void>;
   onSaved: (info: SavedInfo) => void;
 }
 
-export default function Planbesprechung({ entries, standort, benutzer, addEntry, removeEntry, onSaved }: Props) {
+export default function Planbesprechung({ entries, standort, benutzer, standortQuelle, benutzerQuelle, addEntry, removeEntry, onSaved }: Props) {
   const arzt = benutzer;
   const [pressing, setPressing] = useState(false);
   const [lastEntry, setLastEntry] = useState<string | null>(null);
@@ -71,6 +75,8 @@ export default function Planbesprechung({ entries, standort, benutzer, addEntry,
       bereich: 'Planbesprechungszimmer',
       mitarbeiter: arzt,
       werttyp: 'planbesprechung',
+      standort_quelle: standortQuelle,
+      benutzer_quelle: benutzerQuelle,
     });
     setLastEntry(new Date().toLocaleTimeString('de-DE', { hour12: false }).slice(0, 5) + ' Uhr');
     onSaved({ ereignis: 'Planbesprechung', standort, bereich: 'Planbesprechungszimmer', werttyp: 'planbesprechung' });

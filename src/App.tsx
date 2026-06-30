@@ -25,12 +25,14 @@ function isStandort(v: string | null): v is Standort {
 }
 
 // URL-Parameter hat Vorrang vor localStorage; kein stiller Default.
-function readInitialStandort(): Standort | null {
+// Liefert zusätzlich die Herkunft des Standorts mit (für standort_quelle).
+function readInitialStandort(): { standort: Standort | null; quelle: string | null } {
   const param = new URLSearchParams(window.location.search).get('standort')?.toLowerCase();
-  if (param === 'wiehre') return 'Wiehre';
-  if (param === 'stadttheater') return 'Stadttheater';
+  if (param === 'wiehre') return { standort: 'Wiehre', quelle: 'url_parameter' };
+  if (param === 'stadttheater') return { standort: 'Stadttheater', quelle: 'url_parameter' };
   const stored = localStorage.getItem('kfo_standort');
-  return isStandort(stored) ? stored : null;
+  if (isStandort(stored)) return { standort: stored, quelle: 'device_default' };
+  return { standort: null, quelle: null };
 }
 
 export default function App() {
@@ -38,8 +40,14 @@ export default function App() {
   const [view, setView] = useState<View>('empfang');
   const [showUserModal, setShowUserModal] = useState(false);
 
-  const [standort, setStandort] = useState<Standort | null>(() => readInitialStandort());
+  const [standort, setStandort] = useState<Standort | null>(() => readInitialStandort().standort);
+  const [standortQuelle, setStandortQuelle] = useState<string | null>(() => readInitialStandort().quelle);
   const [benutzer, setBenutzer] = useState<string | null>(() => localStorage.getItem('kfo_benutzer'));
+  const [benutzerQuelle, setBenutzerQuelle] = useState<string | null>(() =>
+    localStorage.getItem('kfo_benutzer') ? 'device_default' : null
+  );
+  // Merkt sich, ob die nächste Benutzerauswahl aus einem "Benutzer wechseln" stammt.
+  const benutzerWechselPending = useRef(false);
 
   const [toast, setToast] = useState<{ text: string; descriptor: SavedInfo } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -101,7 +109,25 @@ export default function App() {
     const ziel: Standort = standort === 'Stadttheater' ? 'Wiehre' : 'Stadttheater';
     if (window.confirm(`Aktueller Standort: ${standort}. Wirklich zu ${ziel} wechseln?`)) {
       setStandort(ziel);
+      setStandortQuelle('changed_in_session');
     }
+  };
+
+  // Auswahl-Screen: erste Wahl ist 'manual_selected', nach "Benutzer wechseln" 'changed_in_session'.
+  const waehleBenutzer = (name: string) => {
+    setBenutzer(name);
+    setBenutzerQuelle(benutzerWechselPending.current ? 'changed_in_session' : 'manual_selected');
+    benutzerWechselPending.current = false;
+  };
+
+  const wechselBenutzer = () => {
+    benutzerWechselPending.current = true;
+    setBenutzer(null);
+  };
+
+  const waehleStandort = (ziel: Standort) => {
+    setStandort(ziel);
+    setStandortQuelle('manual_selected');
   };
 
   if (!authed) {
@@ -129,14 +155,14 @@ export default function App() {
           <button
             className="standort-btn"
             style={{ background: STANDORT_FARBEN.Stadttheater }}
-            onClick={() => setStandort('Stadttheater')}
+            onClick={() => waehleStandort('Stadttheater')}
           >
             Stadttheater
           </button>
           <button
             className="standort-btn"
             style={{ background: STANDORT_FARBEN.Wiehre }}
-            onClick={() => setStandort('Wiehre')}
+            onClick={() => waehleStandort('Wiehre')}
           >
             Wiehre
           </button>
@@ -150,7 +176,7 @@ export default function App() {
         {users.length === 0 && <p className="selection-empty">Noch keine Benutzer angelegt.</p>}
         <div className="benutzer-pick">
           {users.map((u) => (
-            <button key={u.id} className="benutzer-btn" onClick={() => setBenutzer(u.name)}>
+            <button key={u.id} className="benutzer-btn" onClick={() => waehleBenutzer(u.name)}>
               {u.name}
             </button>
           ))}
@@ -172,7 +198,7 @@ export default function App() {
               <button className="status-btn" onClick={wechselStandort}>
                 Standort wechseln
               </button>
-              <button className="status-btn" onClick={() => setBenutzer(null)}>
+              <button className="status-btn" onClick={wechselBenutzer}>
                 Benutzer wechseln
               </button>
             </span>
@@ -184,6 +210,8 @@ export default function App() {
             users={users}
             standort={standort}
             benutzer={benutzer}
+            standortQuelle={standortQuelle ?? 'unbekannt'}
+            benutzerQuelle={benutzerQuelle ?? 'unbekannt'}
             addEntry={addEntry}
             removeEntry={removeEntry}
             decrementOrRemove={decrementOrRemove}
@@ -200,6 +228,8 @@ export default function App() {
             users={users}
             standort={standort}
             benutzer={benutzer}
+            standortQuelle={standortQuelle ?? 'unbekannt'}
+            benutzerQuelle={benutzerQuelle ?? 'unbekannt'}
             addEntry={addEntry}
             removeEntry={removeEntry}
             onSaved={showToast}

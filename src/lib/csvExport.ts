@@ -1,7 +1,7 @@
 import { FunnelEntry, Werttyp, WERTTYP_LABELS } from '../types';
 
 /** Export schema version – bumped whenever the column set changes. */
-export const EXPORT_VERSION = 2;
+export const EXPORT_VERSION = 3;
 
 /** Reporting-Gruppe pro Werttyp (analyse-freundliche Stufen-Bezeichnung). */
 const REPORTING_STUFE: Record<Werttyp, string> = {
@@ -44,6 +44,8 @@ export const EXPORT_HEADER: string[] = [
   'datetime_iso', 'jahr', 'monat', 'monat_label', 'kw', 'wochentag', 'wochentag_label',
   // --- 4. Export-Metadaten ---
   'exportiert_am', 'export_version',
+  // --- 5. Herkunft (rein additiv, ganz am Ende) ---
+  'standort_quelle', 'benutzer_quelle',
 ];
 
 /** ISO-8601 Kalenderwoche für ein gegebenes Datum (timezone-stabil über UTC). */
@@ -83,6 +85,8 @@ export function buildExportRows(entries: FunnelEntry[], exportiertAm: string): s
       e.datum + 'T' + e.uhrzeit, String(jahr), String(monat), monatLabel, String(kw), String(wochentag), wochentagLabel,
       // Export-Metadaten
       exportiertAm, String(EXPORT_VERSION),
+      // Herkunft (rein additiv)
+      e.standort_quelle ?? 'unbekannt', e.benutzer_quelle ?? 'unbekannt',
     ];
   });
 }

@@ -23,6 +23,8 @@ export interface FunnelEntry {
   anzahl: number;
   erstellt_am: string;
   geaendert_am: string;
+  standort_quelle?: string;
+  benutzer_quelle?: string;
 }
 
 export interface User {
