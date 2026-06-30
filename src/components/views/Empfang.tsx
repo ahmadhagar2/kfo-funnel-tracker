@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { FunnelEntry, Standort, Werttyp, WERTTYP_LABELS, WERTTYP_COLORS, User, KONTAKT_TYPEN } from '../../types';
 import { today } from '../../lib/dateUtils';
+import { buildExportRows, serializeCsv, EXPORT_HEADER } from '../../lib/csvExport';
 import { SavedInfo } from '../../App';
 
 interface Props {
@@ -71,14 +72,19 @@ export default function Empfang({ entries, standort, benutzer, addEntry, removeE
     if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
   };
 
-  const exportCsv = () => {
-    const header = 'id,datum,uhrzeit,standort,bereich,mitarbeiter,werttyp,anzahl';
-    const rows = entries.map((e) => e.id + ',' + e.datum + ',' + e.uhrzeit + ',' + e.standort + ',' + e.bereich + ',' + e.mitarbeiter + ',' + e.werttyp + ',' + e.anzahl);
-    const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' });
+  const exportCsv = (mode: 'analyse' | 'excel') => {
+    const exportiertAm = new Date().toISOString();
+    const rows = buildExportRows(entries, exportiertAm);
+    const delimiter = mode === 'excel' ? ';' : ',';
+    const content = serializeCsv(EXPORT_HEADER, rows, delimiter);
+    // Excel DE: UTF-8 mit BOM, damit Umlaute & Semikolon-Trennung korrekt erkannt werden.
+    const payload = mode === 'excel' ? '\uFEFF' + content : content;
+    const blob = new Blob([payload], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'funnel_export_' + todayStr + '.csv';
+    a.download = 'funnel_export_' + todayStr + (mode === 'excel' ? '_excel_de' : '_analyse') + '.csv';
     a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   const renderTile = (werttyp: Werttyp, hint: string) => (
@@ -110,7 +116,8 @@ export default function Empfang({ entries, standort, benutzer, addEntry, removeE
     <div className="empfang">
       <div className="meta-bar">
         <button className="icon-button" onClick={onOpenUserModal}>Benutzer</button>
-        <button className="icon-button" onClick={exportCsv}>CSV</button>
+        <button className="icon-button" onClick={() => exportCsv('analyse')}>CSV Analyse</button>
+        <button className="icon-button" onClick={() => exportCsv('excel')}>CSV Excel DE</button>
       </div>
       <div className="day-summary">
         <div className="summary-card" style={{ borderColor: '#1a6fd4' }}>
